@@ -1,3 +1,15 @@
+Firstly you need to update the Linux kernel parameter `vm.max_map_count` to increase the maximum number of memory map.
+You can do this permanently to your WSL distribution by running this (in Windows terminal):
+```
+wsl -d <YourDistroName> -u root sysctl -w vm.max_map_count=262144
+```
+
+Or if you only want to update the current WSL session and not permanently, you can run this:
+```bash
+sudo sysctl -w vm.max_map_count=262144
+```
+
+
 Setup the Sonarqube and it's corresponding database with the compose file `./sonarqube-compose.yml`:
 ```bash
 docker compose -f sonarqube-compose.yml up
