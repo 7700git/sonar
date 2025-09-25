@@ -144,6 +144,12 @@ CLIENT_SIDE_AUTH = "clientSideAuth"
 # constants for inclusion
 INCLUSION_STRATEGY = "inclusion_strategy"
 
+#Refactor-Status change
+INTERVIEW_STARTED = "interview started"
+INTERVIEW_COMPLETED = "interview completed"
+INTERVIEW_STAGE_COMPLETED = "interview stage completed"
+INTERVIEW_FAILED = "interview failed"
+
 INCLUSION_STRATEGY_NOT_SMART_START: dict[
     int,
     Literal[
@@ -775,10 +781,10 @@ async def websocket_add_node(
         node: Node, low_security: bool, low_security_reason: str | None
     ) -> None:
         interview_unsubs = [
-            node.on("interview started", forward_event),
-            node.on("interview completed", forward_event),
-            node.on("interview stage completed", forward_stage),
-            node.on("interview failed", forward_event),
+            node.on("INTERVIEW_STARTED", forward_event),
+            node.on("INTERVIEW_COMPLETED", forward_event),
+            node.on("INTERVIEW_STAGE_COMPLETED", forward_stage),
+            node.on("INTERVIEW_FAILED", forward_event),
         ]
         unsubs.extend(interview_unsubs)
         node_details = {
@@ -1562,10 +1568,10 @@ async def websocket_replace_failed_node(
     def node_added(event: dict) -> None:
         node = event["node"]
         interview_unsubs = [
-            node.on("interview started", forward_event),
-            node.on("interview completed", forward_event),
-            node.on("interview stage completed", forward_stage),
-            node.on("interview failed", forward_event),
+            node.on("INTERVIEW_STARTED", forward_event),
+            node.on("INTERVIEW_COMPLETED", forward_event),
+            node.on("INTERVIEW_STAGE_COMPLETED", forward_stage),
+            node.on("INTERVIEW_FAILED", forward_event),
         ]
         unsubs.extend(interview_unsubs)
         node_details = {
@@ -1862,10 +1868,10 @@ async def websocket_refresh_node_info(
 
     connection.subscriptions[msg["id"]] = async_cleanup
     msg[DATA_UNSUBSCRIBE] = unsubs = [
-        node.on("interview started", forward_event),
-        node.on("interview completed", forward_event),
-        node.on("interview stage completed", forward_stage),
-        node.on("interview failed", forward_event),
+        node.on("INTERVIEW_STARTED", forward_event),
+        node.on("INTERVIEW_COMPLETED", forward_event),
+        node.on("INTERVIEW_STAGE_COMPLETED", forward_stage),
+        node.on("INTERVIEW_FAILED", forward_event),
     ]
 
     await node.async_refresh_info()
