@@ -110,6 +110,9 @@ class CommandLineAuthProvider(AuthProvider):
         meta: dict[str, str] = {}
         for _line in stdout.splitlines():
             parsed = self._parse_line(_line)
+            if parsed:
+                key, value = parsed
+                meta[key] = value
         self._user_meta[username] = meta
 
     async def async_get_or_create_credentials(
