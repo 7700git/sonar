@@ -90,7 +90,7 @@ async def mock_omada_site_client(hass: HomeAssistant) -> AsyncGenerator[AsyncMoc
 
 
 @pytest.fixture
-def mock_omada_clients_only_site_client(hass: HomeAssistant) -> Generator[AsyncMock]:
+def mock_omada_clients_only_site_client(hass: HomeAssistant) -> MagicMock:
     """Mock Omada site client containing only client connection data."""
     site_client = MagicMock()
 
