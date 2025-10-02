@@ -445,7 +445,7 @@ async def async_devices_payload(hass: HomeAssistant) -> dict:
     #         if device_info["via_device"] is None:
     #             continue
     #         device_info["via_device"] = device_id_mapping.get(device_info["via_device"])
-    check_intinfo(integrations_info, device_id_mapping)
+    integration_info = check_intinfo(integrations_info, device_id_mapping)
     ent_reg = er.async_get(hass)
 
     for entity_entry in ent_reg.entities.values():
@@ -503,7 +503,7 @@ async def async_devices_payload(hass: HomeAssistant) -> dict:
     #             integration_info["custom_integration_version"] = str(
     #                 integration.version
     #             )
-    domain_check(integrations, integrations_info)
+    integrations_info = domain_check(integrations, integrations_info)
 
     return {
         "version": "home-assistant:1",
@@ -515,18 +515,19 @@ async def async_devices_payload(hass: HomeAssistant) -> dict:
 def check_intinfo(
     integrations_info: dict[str, dict[str, Any]],
     device_id_mapping: dict[str, tuple[str, int]],
-) -> None:
+) -> dict[str, dict[str, Any]]:
     """Checks that device_info and stuff is correct."""
     for integration_info in integrations_info.values():
         for device_info in integration_info["devices"]:
             if device_info["via_device"] is None:
                 continue
             device_info["via_device"] = device_id_mapping.get(device_info["via_device"])
+    return integrations_info
 
 
 def domain_check(
     integrations: dict[str, Integration], integrations_info: dict[str, dict[str, Any]]
-) -> None:
+) -> dict[str, dict[str, Any]]:
     """Makes a domain check."""
     for domain, integration_info in integrations_info.items():
         if integration := integrations.get(domain):
@@ -536,3 +537,4 @@ def domain_check(
                 integration_info["custom_integration_version"] = str(
                     integration.version
                 )
+    return integrations_info
