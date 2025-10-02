@@ -201,8 +201,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                         # always read the response to avoid closing the connection
                         # before the server has finished sending it, while avoiding excessive memory usage
                         async for _ in response.content.iter_chunked(1024):
-                            pass
-
+                            pass  # consume response content to close connection
                         return None
 
                     _content = None
