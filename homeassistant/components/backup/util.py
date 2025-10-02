@@ -593,7 +593,9 @@ class DecryptedBackupStreamer(_CipherBackupStreamer):
 
     def backup(self) -> AgentBackup:
         """Return the decrypted backup."""
-        return replace(self._backup, protected=False, size=self.size())
+        return cast(
+            AgentBackup, replace(self._backup, protected=False, size=self.size())
+        )
 
 
 class EncryptedBackupStreamer(_CipherBackupStreamer):
@@ -603,7 +605,9 @@ class EncryptedBackupStreamer(_CipherBackupStreamer):
 
     def backup(self) -> AgentBackup:
         """Return the encrypted backup."""
-        return replace(self._backup, protected=True, size=self.size())
+        return cast(
+            AgentBackup, replace(self._backup, protected=True, size=self.size())
+        )
 
 
 async def receive_file(
