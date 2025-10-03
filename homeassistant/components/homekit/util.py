@@ -336,46 +336,39 @@ def validate_entity_config(values: dict) -> dict[str, dict]:
         if not isinstance(config, dict):
             raise vol.Invalid(f"The configuration for {entity} must be a dictionary.")
 
-        if domain == "alarm_control_panel":
-            config = CODE_SCHEMA(config)
-
-        elif domain == media_player.const.DOMAIN:
-            config = FEATURE_SCHEMA(config)
-            feature_list = {}
-            for feature in config[CONF_FEATURE_LIST]:
-                params = MEDIA_PLAYER_SCHEMA(feature)
-                key = params.pop(CONF_FEATURE)
-                if key in feature_list:
-                    raise vol.Invalid(f"A feature can be added only once for {entity}")
-                feature_list[key] = params
-            config[CONF_FEATURE_LIST] = feature_list
-
-        elif domain == "camera":
-            config = CAMERA_SCHEMA(config)
-
-        elif domain == "lock":
-            config = LOCK_SCHEMA(config)
-
-        elif domain == "switch":
-            config = SWITCH_TYPE_SCHEMA(config)
-
-        elif domain == "humidifier":
-            config = HUMIDIFIER_SCHEMA(config)
-
-        elif domain == "cover":
-            config = COVER_SCHEMA(config)
-
-        elif domain == "fan":
-            config = FAN_SCHEMA(config)
-
-        elif domain == "sensor":
-            config = SENSOR_SCHEMA(config)
-
-        elif domain == "valve":
-            config = VALVE_SCHEMA(config)
-
-        else:
-            config = BASIC_INFO_SCHEMA(config)
+        match domain:
+            case media_player.const.DOMAIN:
+                config = FEATURE_SCHEMA(config)
+                feature_list = {}
+                for feature in config[CONF_FEATURE_LIST]:
+                    params = MEDIA_PLAYER_SCHEMA(feature)
+                    key = params.pop(CONF_FEATURE)
+                    if key in feature_list:
+                        raise vol.Invalid(
+                            f"A feature can be added only once for {entity}"
+                        )
+                    feature_list[key] = params
+                config[CONF_FEATURE_LIST] = feature_list
+            case "alarm_control_panel":
+                config = CODE_SCHEMA(config)
+            case "camera":
+                config = CAMERA_SCHEMA(config)
+            case "lock":
+                config = LOCK_SCHEMA(config)
+            case "switch":
+                config = SWITCH_TYPE_SCHEMA(config)
+            case "humidifier":
+                config = HUMIDIFIER_SCHEMA(config)
+            case "cover":
+                config = COVER_SCHEMA(config)
+            case "fan":
+                config = FAN_SCHEMA(config)
+            case "sensor":
+                config = SENSOR_SCHEMA(config)
+            case "valve":
+                config = VALVE_SCHEMA(config)
+            case _:
+                config = BASIC_INFO_SCHEMA(config)
 
         entities[entity] = config
     return entities
