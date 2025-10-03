@@ -414,6 +414,10 @@ async def async_setup_entry(
     psutil_wrapper = entry.runtime_data.psutil_wrapper
     sensor_data = coordinator.data
 
+    cpu_temperature: float | None = None
+    with contextlib.suppress(AttributeError):
+        cpu_temperature = read_cpu_temperature(sensor_data.temperatures)
+
     def get_arguments() -> dict[str, Any]:
         """Return startup information."""
         return {
@@ -421,33 +425,39 @@ async def async_setup_entry(
             "network_arguments": get_all_network_interfaces(hass, psutil_wrapper),
         }
 
-    cpu_temperature: float | None = None
-    with contextlib.suppress(AttributeError):
-        cpu_temperature = read_cpu_temperature(sensor_data.temperatures)
-
     startup_arguments = await hass.async_add_executor_job(get_arguments)
     startup_arguments["cpu_temperature"] = cpu_temperature
 
     _LOGGER.debug("Setup from options %s", entry.options)
+
     for _type, sensor_description in SENSOR_TYPES.items():
-        for sensor_type, sensor_argument in SENSORS_WITH_ARG.items():
-            if _type.startswith(sensor_type):
-                for argument in startup_arguments[sensor_argument]:
-                    is_enabled = check_legacy_resource(
-                        f"{_type}_{argument}", legacy_resources
+        filtered_sensors = (
+            sensor_argument
+            for sensor_type, sensor_argument in SENSORS_WITH_ARG.items()
+            if _type.startswith(sensor_type)
+        )
+
+        for sensor_argument in filtered_sensors:
+            filtered_resources = (
+                argument
+                for argument in startup_arguments[sensor_argument]
+                if (_add := slugify(f"{_type}_{argument}")) not in loaded_resources
+            )
+
+            for argument in filtered_resources:
+                is_enabled = check_legacy_resource(
+                    f"{_type}_{argument}", legacy_resources
+                )
+                loaded_resources.add(_add)
+                entities.append(
+                    SystemMonitorSensor(
+                        coordinator,
+                        sensor_description,
+                        entry.entry_id,
+                        argument,
+                        is_enabled,
                     )
-                    if (_add := slugify(f"{_type}_{argument}")) not in loaded_resources:
-                        loaded_resources.add(_add)
-                        entities.append(
-                            SystemMonitorSensor(
-                                coordinator,
-                                sensor_description,
-                                entry.entry_id,
-                                argument,
-                                is_enabled,
-                            )
-                        )
-                continue
+                )
 
         if _type.startswith(SENSORS_NO_ARG):
             argument = ""
@@ -480,33 +490,38 @@ async def async_setup_entry(
                     is_enabled,
                 )
             )
-            continue
 
     # Ensure legacy imported disk_* resources are loaded if they are not part
     # of mount points automatically discovered
-    for resource in legacy_resources:
-        if resource.startswith("disk_"):
-            check_resource = slugify(resource)
-            _LOGGER.debug(
-                "Check resource %s already loaded in %s",
-                check_resource,
-                loaded_resources,
+    filtered_legacy_resources = (
+        resource for resource in legacy_resources if resource.startswith("disk_")
+    )
+
+    for resource in filtered_legacy_resources:
+        check_resource = slugify(resource)
+        _LOGGER.debug(
+            "Check resource %s already loaded in %s",
+            check_resource,
+            loaded_resources,
+        )
+
+        if check_resource in loaded_resources:
+            continue
+
+        loaded_resources.add(check_resource)
+        split_index = resource.rfind("_")
+        _type = resource[:split_index]
+        argument = resource[split_index + 1 :]
+        _LOGGER.debug("Loading legacy %s with argument %s", _type, argument)
+        entities.append(
+            SystemMonitorSensor(
+                coordinator,
+                SENSOR_TYPES[_type],
+                entry.entry_id,
+                argument,
+                True,
             )
-            if check_resource not in loaded_resources:
-                loaded_resources.add(check_resource)
-                split_index = resource.rfind("_")
-                _type = resource[:split_index]
-                argument = resource[split_index + 1 :]
-                _LOGGER.debug("Loading legacy %s with argument %s", _type, argument)
-                entities.append(
-                    SystemMonitorSensor(
-                        coordinator,
-                        SENSOR_TYPES[_type],
-                        entry.entry_id,
-                        argument,
-                        True,
-                    )
-                )
+        )
 
     @callback
     def clean_obsolete_entities() -> None:
