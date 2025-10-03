@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import io
 import ipaddress
 import logging
@@ -399,7 +400,9 @@ def get_media_player_features(state: State) -> list[str]:
     return supported_modes
 
 
-def validate_media_player_features(state: State, feature_list: str) -> bool:
+def validate_media_player_features(
+    state: State, feature_list: Mapping[str, Any]
+) -> bool:
     """Validate features for media players."""
     if not (supported_modes := get_media_player_features(state)):
         _LOGGER.error("%s does not support any media_player features", state.entity_id)
