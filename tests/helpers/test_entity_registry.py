@@ -4434,7 +4434,7 @@ async def test_subentry(
     with pytest.raises(
         ValueError, match="Config entry mock-id-1 has no subentry bad-subentry-id"
     ):
-        entry = entity_registry.async_get_or_create(
+        entity_registry.async_get_or_create(
             "light",
             "hue",
             "5678",
@@ -4455,7 +4455,7 @@ async def test_subentry(
     with pytest.raises(
         ValueError, match="Config entry mock-id-1 has no subentry bad-subentry-id"
     ):
-        entry = entity_registry.async_get_or_create(
+        entity_registry.async_get_or_create(
             "light",
             "hue",
             "5678",
@@ -4475,7 +4475,7 @@ async def test_subentry(
     with pytest.raises(
         ValueError, match="Can't change config entry without changing subentry"
     ):
-        entry = entity_registry.async_get_or_create(
+        entity_registry.async_get_or_create(
             "light",
             "hue",
             "5678",
@@ -4485,7 +4485,7 @@ async def test_subentry(
     with pytest.raises(
         ValueError, match="Config entry mock-id-2 has no subentry mock-subentry-id-1-2"
     ):
-        entry = entity_registry.async_get_or_create(
+        entity_registry.async_get_or_create(
             "light",
             "hue",
             "5678",
