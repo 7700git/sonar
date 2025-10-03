@@ -437,14 +437,15 @@ async def async_devices_payload(hass: HomeAssistant) -> dict:
                 "via_device": device_entry.via_device_id,
             }
         )
+    # Can there be a split here?
 
     # Fill out via_device with new device ids
-    for integration_info in integrations_info.values():
-        for device_info in integration_info["devices"]:
-            if device_info["via_device"] is None:
-                continue
-            device_info["via_device"] = device_id_mapping.get(device_info["via_device"])
-
+    # for integration_info in integrations_info.values():
+    #     for device_info in integration_info["devices"]:
+    #         if device_info["via_device"] is None:
+    #             continue
+    #         device_info["via_device"] = device_id_mapping.get(device_info["via_device"])
+    integration_info = fill_via_device(integrations_info, device_id_mapping)
     ent_reg = er.async_get(hass)
 
     for entity_entry in ent_reg.entities.values():
@@ -494,6 +495,40 @@ async def async_devices_payload(hass: HomeAssistant) -> dict:
         if isinstance(integration, Integration)
     }
 
+    # for domain, integration_info in integrations_info.items():
+    #     if integration := integrations.get(domain):
+    #         integration_info["is_custom_integration"] = not integration.is_built_in
+    #         # Include version for custom integrations
+    #         if not integration.is_built_in and integration.version:
+    #             integration_info["custom_integration_version"] = str(
+    #                 integration.version
+    #             )
+    integrations_info = version_set(integrations, integrations_info)
+
+    return {
+        "version": "home-assistant:1",
+        "home_assistant": HA_VERSION,
+        "integrations": integrations_info,
+    }
+
+
+def fill_via_device(
+    integrations_info: dict[str, dict[str, Any]],
+    device_id_mapping: dict[str, tuple[str, int]],
+) -> dict[str, dict[str, Any]]:
+    """Fill out via_device with new device ids."""
+    for integration_info in integrations_info.values():
+        for device_info in integration_info["devices"]:
+            if device_info["via_device"] is None:
+                continue
+            device_info["via_device"] = device_id_mapping.get(device_info["via_device"])
+    return integrations_info
+
+
+def version_set(
+    integrations: dict[str, Integration], integrations_info: dict[str, dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """Sets the version for custom integrations."""
     for domain, integration_info in integrations_info.items():
         if integration := integrations.get(domain):
             integration_info["is_custom_integration"] = not integration.is_built_in
@@ -502,9 +537,4 @@ async def async_devices_payload(hass: HomeAssistant) -> dict:
                 integration_info["custom_integration_version"] = str(
                     integration.version
                 )
-
-    return {
-        "version": "home-assistant:1",
-        "home_assistant": HA_VERSION,
-        "integrations": integrations_info,
-    }
+    return integrations_info
