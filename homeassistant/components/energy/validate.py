@@ -192,12 +192,12 @@ def _async_validate_usage_stat(
         return
 
     try:
-        current_value: float | None = float(state.state)
-    except ValueError:
+        current_value: float = float(state.state)
+    except (ValueError, TypeError):
         issues.add_issue(hass, "entity_state_non_numeric", entity_id, state.state)
         return
 
-    if current_value is not None and current_value < 0:
+    if current_value < 0:
         issues.add_issue(hass, "entity_negative_state", entity_id, current_value)
 
     device_class = state.attributes.get(ATTR_DEVICE_CLASS)
