@@ -188,6 +188,9 @@ AREA_ID = "area_id"
 FEATURE = "feature"
 STRATEGY = "strategy"
 
+# constants for messages
+REMOVE_NODE = "node removed"
+
 # https://github.com/zwave-js/node-zwave-js/blob/master/packages/core/src/security/QR.ts#L41
 MINIMUM_QR_STRING_LENGTH = 52
 
@@ -1442,7 +1445,7 @@ async def websocket_remove_node(
 
         connection.send_message(
             websocket_api.event_message(
-                msg[ID], {"event": "node removed", "node": node_details}
+                msg[ID], {"event": REMOVE_NODE, "node": node_details}
             )
         )
 
@@ -1451,7 +1454,7 @@ async def websocket_remove_node(
         controller.on("exclusion started", forward_event),
         controller.on("exclusion failed", forward_event),
         controller.on("exclusion stopped", forward_event),
-        controller.on("node removed", node_removed),
+        controller.on(REMOVE_NODE, node_removed),
     ]
 
     result = await controller.async_begin_exclusion(msg.get(STRATEGY))
@@ -1588,7 +1591,7 @@ async def websocket_replace_failed_node(
 
         connection.send_message(
             websocket_api.event_message(
-                msg[ID], {"event": "node removed", "node": node_details}
+                msg[ID], {"event": REMOVE_NODE, "node": node_details}
             )
         )
 
@@ -1613,7 +1616,7 @@ async def websocket_replace_failed_node(
         controller.on("inclusion stopped", forward_event),
         controller.on("validate dsk and enter pin", forward_dsk),
         controller.on("grant security classes", forward_requested_grant),
-        controller.on("node removed", node_removed),
+        controller.on(REMOVE_NODE, node_removed),
         controller.on("node found", node_found),
         controller.on("node added", node_added),
         async_dispatcher_connect(
@@ -1676,12 +1679,12 @@ async def websocket_remove_failed_node(
 
         connection.send_message(
             websocket_api.event_message(
-                msg[ID], {"event": "node removed", "node": node_details}
+                msg[ID], {"event": REMOVE_NODE, "node": node_details}
             )
         )
 
     connection.subscriptions[msg["id"]] = async_cleanup
-    msg[DATA_UNSUBSCRIBE] = unsubs = [controller.on("node removed", node_removed)]
+    msg[DATA_UNSUBSCRIBE] = unsubs = [controller.on(REMOVE_NODE, node_removed)]
 
     await controller.async_remove_failed_node(node)
     connection.send_result(msg[ID])
