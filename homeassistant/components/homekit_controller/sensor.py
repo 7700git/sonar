@@ -522,9 +522,6 @@ class HomeKitBatterySensor(HomeKitSensor):
     @property
     def is_charging(self) -> bool:
         """Return true if currently charging."""
-        # 0 = not charging
-        # 1 = charging
-        # 2 = not chargeable
         return self.service.value(CharacteristicsTypes.CHARGING_STATE) == 1
 
     @property
