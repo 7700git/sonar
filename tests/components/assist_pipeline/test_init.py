@@ -70,8 +70,7 @@ async def test_pipeline_from_audio_stream_auto(
     with patch(
         "homeassistant.components.tts.secrets.token_urlsafe", return_value="test_token"
     ):
-        await assist_pipeline.async_pipeline_from_audio_stream(
-            hass,
+        config = assist_pipeline.PipelineConfig(
             context=Context(),
             event_callback=events.append,
             stt_metadata=stt.SpeechMetadata(
@@ -85,6 +84,7 @@ async def test_pipeline_from_audio_stream_auto(
             stt_stream=audio_data(),
             audio_settings=assist_pipeline.AudioSettings(is_vad_enabled=False),
         )
+        await assist_pipeline.async_pipeline_from_audio_stream(hass, config)
 
     assert process_events(events) == snapshot
     assert len(mock_stt_provider_entity.received) == 2
