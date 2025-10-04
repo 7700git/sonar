@@ -179,7 +179,7 @@ class OdhcpdUbusDeviceScanner(UbusDeviceScanner):
             self.mac2name = {}
             for device in result["device"].values():
                 for lease in device["leases"]:
-                    mac = lease["mac"]  # mac = aabbccddeeff
+                    mac = lease["mac"]
                     # Convert it to expected format with colon
                     mac = ":".join(mac[i : i + 2] for i in range(0, len(mac), 2))
                     self.mac2name[mac.upper()] = lease["hostname"]
