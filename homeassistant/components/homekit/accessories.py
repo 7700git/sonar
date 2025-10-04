@@ -174,21 +174,18 @@ def get_accessory(  # noqa: C901
             a_type = "Lock"
 
         case "media_player":
-            device_class = state.attributes.get(ATTR_DEVICE_CLASS)
-            feature_list = config.get(CONF_FEATURE_LIST, [])
-
-            if device_class == MediaPlayerDeviceClass.RECEIVER:
-                a_type = "ReceiverMediaPlayer"
-            elif device_class == MediaPlayerDeviceClass.TV:
-                a_type = "TelevisionMediaPlayer"
-            elif validate_media_player_features(state, feature_list):
-                a_type = "MediaPlayer"
+            a_type = _get_media_player(state, config)
 
         case "sensor":
             a_type = _get_sensor(state)
 
         case "switch":
-            a_type = _get_switch(state, config)
+            if switch_type := config.get(CONF_TYPE):
+                a_type = SWITCH_TYPES[switch_type]
+            elif state.attributes.get(ATTR_DEVICE_CLASS) == SwitchDeviceClass.OUTLET:
+                a_type = "Outlet"
+            else:
+                a_type = "Switch"
 
         case "valve":
             a_type = "Valve"
@@ -203,9 +200,8 @@ def get_accessory(  # noqa: C901
             ):
                 a_type = "LawnMower"
 
-        case "remote":
-            if features & RemoteEntityFeature.ACTIVITY:
-                a_type = "ActivityRemote"
+        case "remote" if features & RemoteEntityFeature.ACTIVITY:
+            a_type = "ActivityRemote"
 
         case (
             "automation"
@@ -315,14 +311,18 @@ def _get_sensor(state: State) -> str | None:
     return a_type
 
 
-def _get_switch(state: State, config: dict) -> str:
-    """Helper function that returns the type of a switch."""
-    if switch_type := config.get(CONF_TYPE):
-        a_type = SWITCH_TYPES[switch_type]
-    elif state.attributes.get(ATTR_DEVICE_CLASS) == SwitchDeviceClass.OUTLET:
-        a_type = "Outlet"
-    else:
-        a_type = "Switch"
+def _get_media_player(state: State, config: dict) -> str | None:
+    """Helper function that return the type of media player or None if the player is not supported."""
+    device_class = state.attributes.get(ATTR_DEVICE_CLASS)
+    feature_list = config.get(CONF_FEATURE_LIST, [])
+    a_type = None
+
+    if device_class == MediaPlayerDeviceClass.RECEIVER:
+        a_type = "ReceiverMediaPlayer"
+    elif device_class == MediaPlayerDeviceClass.TV:
+        a_type = "TelevisionMediaPlayer"
+    elif validate_media_player_features(state, feature_list):
+        a_type = "MediaPlayer"
     return a_type
 
 
