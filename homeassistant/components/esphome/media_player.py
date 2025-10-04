@@ -200,7 +200,6 @@ class EsphomeMediaPlayer(
         device_id = self.device_entry.id
         media_format = format_to_use.format
 
-        # 0 = None
         rate: int | None = None
         channels: int | None = None
         width: int | None = None
