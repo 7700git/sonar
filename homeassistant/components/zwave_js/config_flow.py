@@ -72,7 +72,7 @@ from .helpers import (
 from .models import ZwaveJSConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
-
+ERROR_FAILED_USB_PORTS = "Failed to get USB ports: %s"
 DEFAULT_URL = "ws://localhost:3000"
 TITLE = "Z-Wave JS"
 
@@ -747,7 +747,7 @@ class ZWaveJSConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             ports = await async_get_usb_ports(self.hass)
         except OSError as err:
-            _LOGGER.error("Failed to get USB ports: %s", err)
+            _LOGGER.error(ERROR_FAILED_USB_PORTS, err)
             return self.async_abort(reason="usb_ports_failed")
 
         data_schema = vol.Schema(
@@ -1234,7 +1234,7 @@ class ZWaveJSConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             ports = await async_get_usb_ports(self.hass)
         except OSError as err:
-            _LOGGER.error("Failed to get USB ports: %s", err)
+            _LOGGER.error(ERROR_FAILED_USB_PORTS, err)
             return self.async_abort(reason="usb_ports_failed")
 
         data_schema = vol.Schema(
@@ -1275,7 +1275,7 @@ class ZWaveJSConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             ports = await async_get_usb_ports(self.hass)
         except OSError as err:
-            _LOGGER.error("Failed to get USB ports: %s", err)
+            _LOGGER.error(ERROR_FAILED_USB_PORTS, err)
             return self.async_abort(reason="usb_ports_failed")
 
         addon_info = await self._async_get_addon_info()
