@@ -145,163 +145,186 @@ def get_accessory(  # noqa: C901
     name = config.get(CONF_NAME, state.name)
     features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
 
-    if state.domain == "alarm_control_panel":
-        a_type = "SecuritySystem"
+    match state.domain:
+        case "alarm_control_panel":
+            a_type = "SecuritySystem"
 
-    elif state.domain in ("binary_sensor", "device_tracker", "person"):
-        a_type = "BinarySensor"
+        case "binary_sensor" | "device_tracker" | "person":
+            a_type = "BinarySensor"
 
-    elif state.domain == "climate":
-        a_type = "Thermostat"
+        case "climate":
+            a_type = "Thermostat"
 
-    elif state.domain == "cover":
-        device_class = state.attributes.get(ATTR_DEVICE_CLASS)
+        case "cover":
+            a_type = _get_cover(state, features)
 
-        if device_class in (
-            CoverDeviceClass.GARAGE,
-            CoverDeviceClass.GATE,
-        ) and features & (CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE):
-            a_type = "GarageDoorOpener"
-        elif (
-            device_class == CoverDeviceClass.WINDOW
-            and features & CoverEntityFeature.SET_POSITION
+        case "fan":
+            if fan_type := config.get(CONF_TYPE):
+                a_type = FAN_TYPES[fan_type]
+            else:
+                a_type = "Fan"
+
+        case "humidifier":
+            a_type = "HumidifierDehumidifier"
+
+        case "light":
+            a_type = "Light"
+
+        case "lock":
+            a_type = "Lock"
+
+        case "media_player":
+            a_type = _get_media_player(state, config)
+
+        case "sensor":
+            a_type = _get_sensor(state)
+
+        case "switch":
+            if switch_type := config.get(CONF_TYPE):
+                a_type = SWITCH_TYPES[switch_type]
+            elif state.attributes.get(ATTR_DEVICE_CLASS) == SwitchDeviceClass.OUTLET:
+                a_type = "Outlet"
+            else:
+                a_type = "Switch"
+
+        case "valve":
+            a_type = "Valve"
+
+        case "vacuum":
+            a_type = "Vacuum"
+
+        case "lawn_mower":
+            if (
+                features & LawnMowerEntityFeature.DOCK
+                and features & LawnMowerEntityFeature.START_MOWING
+            ):
+                a_type = "LawnMower"
+
+        case "remote" if features & RemoteEntityFeature.ACTIVITY:
+            a_type = "ActivityRemote"
+
+        case (
+            "automation"
+            | "button"
+            | "input_boolean"
+            | "input_button"
+            | "remote"
+            | "scene"
+            | "script"
         ):
-            a_type = "Window"
-        elif (
-            device_class == CoverDeviceClass.DOOR
-            and features & CoverEntityFeature.SET_POSITION
-        ):
-            a_type = "Door"
-        elif features & CoverEntityFeature.SET_POSITION:
-            a_type = "WindowCovering"
-        elif features & (CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE):
-            a_type = "WindowCoveringBasic"
-        elif features & CoverEntityFeature.SET_TILT_POSITION:
-            # WindowCovering and WindowCoveringBasic both support tilt
-            # only WindowCovering can handle the covers that are missing
-            # CoverEntityFeature.SET_POSITION, CoverEntityFeature.OPEN,
-            # and CoverEntityFeature.CLOSE
-            a_type = "WindowCovering"
-
-    elif state.domain == "fan":
-        if fan_type := config.get(CONF_TYPE):
-            a_type = FAN_TYPES[fan_type]
-        else:
-            a_type = "Fan"
-
-    elif state.domain == "humidifier":
-        a_type = "HumidifierDehumidifier"
-
-    elif state.domain == "light":
-        a_type = "Light"
-
-    elif state.domain == "lock":
-        a_type = "Lock"
-
-    elif state.domain == "media_player":
-        device_class = state.attributes.get(ATTR_DEVICE_CLASS)
-        feature_list = config.get(CONF_FEATURE_LIST, [])
-
-        if device_class == MediaPlayerDeviceClass.RECEIVER:
-            a_type = "ReceiverMediaPlayer"
-        elif device_class == MediaPlayerDeviceClass.TV:
-            a_type = "TelevisionMediaPlayer"
-        elif validate_media_player_features(state, feature_list):
-            a_type = "MediaPlayer"
-
-    elif state.domain == "sensor":
-        device_class = state.attributes.get(ATTR_DEVICE_CLASS)
-        unit = state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
-
-        if device_class == SensorDeviceClass.TEMPERATURE or unit in (
-            UnitOfTemperature.CELSIUS,
-            UnitOfTemperature.FAHRENHEIT,
-        ):
-            a_type = "TemperatureSensor"
-        elif device_class == SensorDeviceClass.HUMIDITY and unit == PERCENTAGE:
-            a_type = "HumiditySensor"
-        elif (
-            device_class == SensorDeviceClass.PM10
-            or SensorDeviceClass.PM10 in state.entity_id
-        ):
-            a_type = "PM10Sensor"
-        elif (
-            device_class == SensorDeviceClass.PM25
-            or SensorDeviceClass.PM25 in state.entity_id
-        ):
-            a_type = "PM25Sensor"
-        elif device_class == SensorDeviceClass.NITROGEN_DIOXIDE:
-            a_type = "NitrogenDioxideSensor"
-        elif device_class == SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS:
-            a_type = "VolatileOrganicCompoundsSensor"
-        elif (
-            device_class == SensorDeviceClass.GAS
-            or SensorDeviceClass.GAS in state.entity_id
-        ):
-            a_type = "AirQualitySensor"
-        elif device_class == SensorDeviceClass.CO:
-            a_type = "CarbonMonoxideSensor"
-        elif device_class == SensorDeviceClass.CO2 or "co2" in state.entity_id:
-            a_type = "CarbonDioxideSensor"
-        elif device_class == SensorDeviceClass.ILLUMINANCE or unit == LIGHT_LUX:
-            a_type = "LightSensor"
-        else:
-            _LOGGER.debug(
-                "%s: Unsupported sensor type (device_class=%s) (unit=%s)",
-                state.entity_id,
-                device_class,
-                unit,
-            )
-
-    elif state.domain == "switch":
-        if switch_type := config.get(CONF_TYPE):
-            a_type = SWITCH_TYPES[switch_type]
-        elif state.attributes.get(ATTR_DEVICE_CLASS) == SwitchDeviceClass.OUTLET:
-            a_type = "Outlet"
-        else:
             a_type = "Switch"
 
-    elif state.domain == "valve":
-        a_type = "Valve"
+        case "input_select" | "select":
+            a_type = "SelectSwitch"
 
-    elif state.domain == "vacuum":
-        a_type = "Vacuum"
+        case "water_heater":
+            a_type = "WaterHeater"
 
-    elif (
-        state.domain == "lawn_mower"
-        and features & LawnMowerEntityFeature.DOCK
-        and features & LawnMowerEntityFeature.START_MOWING
-    ):
-        a_type = "LawnMower"
-
-    elif state.domain == "remote" and features & RemoteEntityFeature.ACTIVITY:
-        a_type = "ActivityRemote"
-
-    elif state.domain in (
-        "automation",
-        "button",
-        "input_boolean",
-        "input_button",
-        "remote",
-        "scene",
-        "script",
-    ):
-        a_type = "Switch"
-
-    elif state.domain in ("input_select", "select"):
-        a_type = "SelectSwitch"
-
-    elif state.domain == "water_heater":
-        a_type = "WaterHeater"
-
-    elif state.domain == "camera":
-        a_type = "Camera"
+        case "camera":
+            a_type = "Camera"
 
     if a_type is None:
         return None
 
     _LOGGER.debug('Add "%s" as "%s"', state.entity_id, a_type)
     return TYPES[a_type](hass, driver, name, state.entity_id, aid, config)
+
+
+def _get_cover(state: State, features: Any) -> str | None:
+    """Helper function that returns a_type for cover object."""
+
+    device_class = state.attributes.get(ATTR_DEVICE_CLASS)
+    a_type = None
+
+    if device_class in (
+        CoverDeviceClass.GARAGE,
+        CoverDeviceClass.GATE,
+    ) and features & (CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE):
+        a_type = "GarageDoorOpener"
+    elif (
+        device_class == CoverDeviceClass.WINDOW
+        and features & CoverEntityFeature.SET_POSITION
+    ):
+        a_type = "Window"
+    elif (
+        device_class == CoverDeviceClass.DOOR
+        and features & CoverEntityFeature.SET_POSITION
+    ):
+        a_type = "Door"
+    elif features & CoverEntityFeature.SET_POSITION:
+        a_type = "WindowCovering"
+    elif features & (CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE):
+        a_type = "WindowCoveringBasic"
+    elif features & CoverEntityFeature.SET_TILT_POSITION:
+        # WindowCovering and WindowCoveringBasic both support tilt
+        # only WindowCovering can handle the covers that are missing
+        # CoverEntityFeature.SET_POSITION, CoverEntityFeature.OPEN,
+        # and CoverEntityFeature.CLOSE
+        a_type = "WindowCovering"
+    return a_type
+
+
+def _get_sensor(state: State) -> str | None:
+    """Helper function that returns a_type for sensor object or None if the sensor is not supported."""
+    device_class = state.attributes.get(ATTR_DEVICE_CLASS)
+    unit = state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
+
+    if device_class == SensorDeviceClass.TEMPERATURE or unit in (
+        UnitOfTemperature.CELSIUS,
+        UnitOfTemperature.FAHRENHEIT,
+    ):
+        a_type = "TemperatureSensor"
+    elif device_class == SensorDeviceClass.HUMIDITY and unit == PERCENTAGE:
+        a_type = "HumiditySensor"
+    elif (
+        device_class == SensorDeviceClass.PM10
+        or SensorDeviceClass.PM10 in state.entity_id
+    ):
+        a_type = "PM10Sensor"
+    elif (
+        device_class == SensorDeviceClass.PM25
+        or SensorDeviceClass.PM25 in state.entity_id
+    ):
+        a_type = "PM25Sensor"
+    elif device_class == SensorDeviceClass.NITROGEN_DIOXIDE:
+        a_type = "NitrogenDioxideSensor"
+    elif device_class == SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS:
+        a_type = "VolatileOrganicCompoundsSensor"
+    elif (
+        device_class == SensorDeviceClass.GAS
+        or SensorDeviceClass.GAS in state.entity_id
+    ):
+        a_type = "AirQualitySensor"
+    elif device_class == SensorDeviceClass.CO:
+        a_type = "CarbonMonoxideSensor"
+    elif device_class == SensorDeviceClass.CO2 or "co2" in state.entity_id:
+        a_type = "CarbonDioxideSensor"
+    elif device_class == SensorDeviceClass.ILLUMINANCE or unit == LIGHT_LUX:
+        a_type = "LightSensor"
+    else:
+        _LOGGER.debug(
+            "%s: Unsupported sensor type (device_class=%s) (unit=%s)",
+            state.entity_id,
+            device_class,
+            unit,
+        )
+        a_type = None
+    return a_type
+
+
+def _get_media_player(state: State, config: dict) -> str | None:
+    """Helper function that return the type of media player or None if the player is not supported."""
+    device_class = state.attributes.get(ATTR_DEVICE_CLASS)
+    feature_list = config.get(CONF_FEATURE_LIST, [])
+    a_type = None
+
+    if device_class == MediaPlayerDeviceClass.RECEIVER:
+        a_type = "ReceiverMediaPlayer"
+    elif device_class == MediaPlayerDeviceClass.TV:
+        a_type = "TelevisionMediaPlayer"
+    elif validate_media_player_features(state, feature_list):
+        a_type = "MediaPlayer"
+    return a_type
 
 
 class HomeAccessory(Accessory):  # type: ignore[misc]
