@@ -188,12 +188,7 @@ def get_accessory(  # noqa: C901
             a_type = _get_sensor(state)
 
         case "switch":
-            if switch_type := config.get(CONF_TYPE):
-                a_type = SWITCH_TYPES[switch_type]
-            elif state.attributes.get(ATTR_DEVICE_CLASS) == SwitchDeviceClass.OUTLET:
-                a_type = "Outlet"
-            else:
-                a_type = "Switch"
+            a_type = _get_switch(state, config)
 
         case "valve":
             a_type = "Valve"
@@ -317,6 +312,17 @@ def _get_sensor(state: State) -> str | None:
             unit,
         )
         a_type = None
+    return a_type
+
+
+def _get_switch(state: State, config: dict) -> str:
+    """Helper function that returns the type of a switch."""
+    if switch_type := config.get(CONF_TYPE):
+        a_type = SWITCH_TYPES[switch_type]
+    elif state.attributes.get(ATTR_DEVICE_CLASS) == SwitchDeviceClass.OUTLET:
+        a_type = "Outlet"
+    else:
+        a_type = "Switch"
     return a_type
 
 
