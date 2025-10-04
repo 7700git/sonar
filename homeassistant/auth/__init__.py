@@ -199,9 +199,11 @@ class AuthManager:
         hass.async_add_shutdown_job(
             HassJob(
                 self._async_cancel_expiration_schedule, job_type=HassJobType.Callback
+            )
         )
-    )
-    self._async_track_next_refresh_token_expiration()
+
+        # Schedule tracking of next refresh token expiration
+        self._async_track_next_refresh_token_expiration()
 
 
     @property
