@@ -193,7 +193,7 @@ class AuthManager:
             self._async_remove_expired_refresh_tokens, job_type=HassJobType.Callback
         )
 
-    async def async_setup(self) -> None:
+    def async_setup(self) -> None:
         """Set up the auth manager."""
         hass = self.hass
         hass.async_add_shutdown_job(
@@ -201,7 +201,10 @@ class AuthManager:
                 self._async_cancel_expiration_schedule, job_type=HassJobType.Callback
             )
         )
+
+        # Schedule tracking of next refresh token expiration
         self._async_track_next_refresh_token_expiration()
+
 
     @property
     def auth_providers(self) -> list[AuthProvider]:
