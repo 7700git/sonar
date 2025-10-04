@@ -864,12 +864,12 @@ class ReolinkHost:
             # We want handle_webhook to return as soon as possible
             # so we process the data in the background, this also shields from cancellation
             hass.async_create_background_task(
-                self._process_webhook_data(hass, webhook_id, data),
+                self._process_webhook_data(hass, data),
                 "Process Reolink webhook",
             )
 
     async def _process_webhook_data(
-        self, hass: HomeAssistant, webhook_id: str, data: bytes | None
+        self, hass: HomeAssistant, data: bytes | None
     ) -> None:
         """Process the data from the Reolink webhook."""
         # This task is executed in the background so we need to catch exceptions
