@@ -63,8 +63,7 @@ async def auth_manager_from_config(
         providers = await asyncio.gather(
             *(
                 auth_provider_from_config(hass, store)
-
-                for config in provider_configs
+                 for config in provider_configs
             )
         )
     else:
