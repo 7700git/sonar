@@ -37,7 +37,12 @@ from .const import (
     SONOS_TO_MEDIA_TYPES,
     SONOS_TRACKS,
     SONOS_TYPES_MAPPING,
+    # New constants to avoid duplication
+    SONOS_ALBUM_ARTIST_PREFIX,
+    SONOS_ITEM_MUSIC_TRACK,
+    SONOS_ITEM_AUDIO_BOOK,
 )
+
 from .exception import UnknownMediaType
 from .favorites import SonosFavorites
 from .speaker import SonosMedia, SonosSpeaker
@@ -48,12 +53,7 @@ type GetBrowseImageUrlType = Callable[[str, str, str | None], str]
 
 
 def fix_image_url(url: str) -> str:
-    """Update the image url to fully encode characters to allow image display in media_browser UI.
-
-    Images whose file path contains characters such as ',()+ are not loaded without escaping them.
-    """
-
-    # Before parsing encode the plus sign; otherwise it'll be interpreted as a space.
+    """Update the image url to fully encode characters to allow image display in media_browser UI."""
     original_url: str = urllib.parse.unquote(url).replace("+", "%2B")
     parsed_url = urllib.parse.urlparse(original_url)
     query_params = urllib.parse.parse_qsl(parsed_url.query)
@@ -133,7 +133,6 @@ async def async_browse_media(
     media_content_type: str | None,
 ) -> BrowseMedia:
     """Browse media."""
-
     if media_content_id is None:
         return await root_payload(
             hass,
@@ -215,7 +214,7 @@ def build_item_response(
     if payload["search_type"] == MediaType.ALBUM and payload["idstring"].startswith(
         ("A:GENRE", "A:COMPOSER")
     ):
-        payload["idstring"] = "A:ALBUMARTIST/" + "/".join(
+        payload["idstring"] = SONOS_ALBUM_ARTIST_PREFIX + "/".join(
             payload["idstring"].split("/")[2:]
         )
         payload["idstring"] = urllib.parse.unquote(payload["idstring"])
@@ -242,14 +241,12 @@ def build_item_response(
     thumbnail = None
     title = None
 
-    # Fetch album info for titles and thumbnails
-    # Can't be extracted from track info
     if (
         payload["search_type"] == MediaType.ALBUM
-        and media[0].item_class == "object.item.audioItem.musicTrack"
+        and media[0].item_class == SONOS_ITEM_MUSIC_TRACK
     ):
         idstring = payload["idstring"]
-        if idstring.startswith("A:ALBUMARTIST/"):
+        if idstring.startswith(SONOS_ALBUM_ARTIST_PREFIX):
             search_type = SONOS_ALBUM_ARTIST
         elif idstring.startswith("A:ALBUM/"):
             search_type = SONOS_ALBUM
@@ -373,7 +370,6 @@ async def root_payload(
         item = await media_source.async_browse_media(
             hass, None, content_filter=media_source_filter
         )
-        # If domain is None, it's overview of available sources
         if item.domain is None and item.children is not None:
             children.extend(item.children)
         else:
@@ -405,8 +401,7 @@ async def root_payload(
 def library_payload(media_library: MusicLibrary, get_thumbnail_url=None) -> BrowseMedia:
     """Create response payload to describe contents of a specific library.
 
-    Used by async_browse_media.
-    """
+    Used by async_browse_media."""
     children = []
     for item in media_library.browse():
         with suppress(UnknownMediaType):
@@ -428,12 +423,11 @@ def library_payload(media_library: MusicLibrary, get_thumbnail_url=None) -> Brow
 
 
 def favorites_payload(favorites: SonosFavorites) -> BrowseMedia:
-    """Create response payload to describe contents of a specific library.
+    """Create response payload for Sonos favorites.
 
     Used by async_browse_media.
     """
     children: list[BrowseMedia] = []
-
     group_types: set[str] = {fav.reference.item_class for fav in favorites}
     for group_type in sorted(group_types):
         try:
@@ -470,10 +464,7 @@ def favorites_folder_payload(
     media: SonosMedia,
     get_browse_image_url: GetBrowseImageUrlType,
 ) -> BrowseMedia:
-    """Create response payload to describe all items of a type of favorite.
-
-    Used by async_browse_media.
-    """
+    """Create response payload to describe all items of a type of favorite."""
     children: list[BrowseMedia] = []
     content_type = SONOS_TYPES_MAPPING[media_content_id]
 
@@ -512,16 +503,13 @@ def favorites_folder_payload(
 
 def get_media_type(item: DidlObject) -> str:
     """Extract media type of item."""
-    if item.item_class == "object.item.audioItem.musicTrack":
+    if item.item_class == SONOS_ITEM_MUSIC_TRACK:
         return SONOS_TRACKS
 
     if (
         item.item_class == "object.container.album.musicAlbum"
         and SONOS_TYPES_MAPPING.get(item.item_id.split("/")[0])
-        in [
-            SONOS_ALBUM_ARTIST,
-            SONOS_GENRE,
-        ]
+        in [SONOS_ALBUM_ARTIST, SONOS_GENRE]
     ):
         return SONOS_TYPES_MAPPING[item.item_class]
 
@@ -529,10 +517,7 @@ def get_media_type(item: DidlObject) -> str:
 
 
 def can_play(item_class: str, item_id: str | None = None) -> bool:
-    """Test if playable.
-
-    Used by async_browse_media.
-    """
+    """Test if playable."""
     # Folders are playable once we reach the folder level.
     # Format is S://server_address/share/folder
     if item_id and item_id.startswith("S:") and item_class == "object.container":
@@ -541,10 +526,7 @@ def can_play(item_class: str, item_id: str | None = None) -> bool:
 
 
 def can_expand(item: DidlObject) -> bool:
-    """Test if expandable.
-
-    Used by async_browse_media.
-    """
+    """Test if expandable."""
     if isinstance(item, str):
         return SONOS_TYPES_MAPPING.get(item) in EXPANDABLE_MEDIA_TYPES
 
@@ -556,7 +538,7 @@ def can_expand(item: DidlObject) -> bool:
 
 def get_content_id(item: DidlObject) -> str:
     """Extract content id or uri."""
-    if item.item_class == "object.item.audioItem.musicTrack":
+    if item.item_class == SONOS_ITEM_MUSIC_TRACK:
         return cast(str, item.get_uri())
     return cast(str, item.item_id)
 
@@ -582,7 +564,7 @@ def get_media(
         )
 
     if not item_id.startswith("A:ALBUM") and search_type == SONOS_ALBUM:
-        item_id = "A:ALBUMARTIST/" + "/".join(item_id.split("/")[2:])
+        item_id = SONOS_ALBUM_ARTIST_PREFIX + "/".join(item_id.split("/")[2:])
 
     if item_id.startswith("A:ALBUM/") or search_type == "tracks":
         search_term = urllib.parse.unquote(item_id.split("/")[-1])
