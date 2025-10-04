@@ -349,15 +349,11 @@ class PandoraMediaPlayer(MediaPlayerEntity):
         """
         assert self._pianobar is not None
         try:
-            # Continuously expect (read) data until a timeout or EOF occurs.
-            # The result is intentionally ignored as the goal is just to clear the buffer.
-            while True:
-                await self._pianobar.expect(".+", async_=True, timeout=0.1)
+            while not await self._pianobar.expect(".+", async_=True, timeout=0.1):
+                pass
         except pexpect.exceptions.TIMEOUT:
-            # Expected exception when the buffer is finally empty.
             pass
         except pexpect.exceptions.EOF:
-            # Handle if the child process exited during the clear.
             pass
 
 
