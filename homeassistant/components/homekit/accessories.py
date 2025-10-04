@@ -230,10 +230,11 @@ def get_accessory(  # noqa: C901
     return TYPES[a_type](hass, driver, name, state.entity_id, aid, config)
 
 
-def _get_cover(state: State, features: Any) -> str:
+def _get_cover(state: State, features: Any) -> str | None:
     """Helper function that returns a_type for cover object."""
 
     device_class = state.attributes.get(ATTR_DEVICE_CLASS)
+    a_type = None
 
     if device_class in (
         CoverDeviceClass.GARAGE,
