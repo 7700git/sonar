@@ -1753,6 +1753,8 @@ async def test_chat_log_tts_streaming(
                 user_llm_prompt=None,
                 user_extra_system_prompt=conversation_input.extra_system_prompt,
             )
+
+            # Empty code block necessary to consume content stream
             async for _content in chat_log.async_add_delta_content_stream(
                 agent_id, stream_llm_response()
             ):
